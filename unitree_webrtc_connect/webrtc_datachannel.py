@@ -26,6 +26,9 @@ class WebRTCDataChannel:
         self.validaton = WebRTCDataChannelValidaton(self.channel, self.pub_sub)
         self.rtc_inner_req = WebRTCDataChannelRTCInnerReq(self.conn, self.channel, self.pub_sub)
 
+        # Trigger reconnect when heartbeat times out
+        self.heartbeat.set_on_connection_lost_callback(self.trigger_reconnect)
+
         self.set_decoder(decoder_type = 'libvoxel')
 
         #Event handler for Validation succeed
@@ -84,6 +87,12 @@ class WebRTCDataChannel:
             except Exception as error:
                 logging.error("Error processing WebRTC data", exc_info=True)
 
+
+    def trigger_reconnect(self):
+        """Called when heartbeat or data channel detects a connection loss."""
+        logging.warning("DataChannel: Triggering auto-reconnect due to connection loss.")
+        if hasattr(self.conn, "_auto_reconnect"):
+            asyncio.create_task(self.conn._auto_reconnect())
 
     async def handle_response(self, msg: dict):
         msg_type = msg["type"]

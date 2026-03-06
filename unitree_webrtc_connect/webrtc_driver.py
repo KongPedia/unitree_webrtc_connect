@@ -8,7 +8,7 @@ from .unitree_auth import send_sdp_to_local_peer, send_sdp_to_remote_peer
 from .webrtc_datachannel import WebRTCDataChannel
 from .webrtc_audio import WebRTCAudioChannel
 from .webrtc_video import WebRTCVideoChannel
-from .constants import DATA_CHANNEL_TYPE, WebRTCConnectionMethod
+from .constants import DATA_CHANNEL_TYPE, WebRTCConnectionMethod, RTC_TOPIC, SPORT_CMD
 from .util import fetch_public_key, fetch_token, fetch_turn_server_info, print_status
 from .multicast_scanner import discover_ip_sn
 
@@ -25,6 +25,7 @@ class UnitreeWebRTCConnection:
         self.token = fetch_token(username, password) if username and password else ""
 
     async def connect(self):
+        self._intentional_disconnect = False
         print_status("WebRTC connection", "🟡 started")
         if self.connectionMethod == WebRTCConnectionMethod.Remote:
             self.public_key = fetch_public_key()
@@ -48,6 +49,7 @@ class UnitreeWebRTCConnection:
             await self.init_webrtc(ip=self.ip)
     
     async def disconnect(self):
+        self._intentional_disconnect = True
         if self.pc:
             await self.pc.close()
             self.pc = None
@@ -58,6 +60,41 @@ class UnitreeWebRTCConnection:
         await self.disconnect()
         await self.connect()
         print_status("WebRTC connection", "🟢 reconnected")
+
+    async def _auto_reconnect(self, max_retries=5):
+        if getattr(self, "_intentional_disconnect", False):
+            return False
+        if getattr(self, "_is_reconnecting", False):
+            return False
+        
+        self._is_reconnecting = True
+        logging.warning("Initiating auto-reconnect sequence...")
+        
+        for attempt in range(max_retries):
+            try:
+                logging.info(f"Auto-reconnect attempt {attempt + 1}/{max_retries}")
+                await asyncio.sleep(2 ** attempt)  # exponential backoff
+                await self.reconnect()
+                
+                # Wait briefly after reconnect before sending commands
+                await asyncio.sleep(1.0)
+                
+                # Automatically send RecoveryStand
+                if hasattr(self, "datachannel") and self.datachannel.pub_sub:
+                    logging.info("Auto-reconnect successful. Sending RecoveryStand...")
+                    await self.datachannel.pub_sub.publish_request_new(
+                        RTC_TOPIC["SPORT_MOD"],
+                        {"api_id": SPORT_CMD["RecoveryStand"]}
+                    )
+                
+                self._is_reconnecting = False
+                return True
+            except Exception as e:
+                logging.error(f"Reconnect attempt {attempt+1} failed: {e}")
+                
+        logging.error("All auto-reconnect attempts failed.")
+        self._is_reconnecting = False
+        return False
 
     def create_webrtc_configuration(self, turn_server_info, stunEnable=True, turnEnable=True) -> RTCConfiguration:
         ice_servers = []
@@ -138,8 +175,10 @@ class UnitreeWebRTCConnection:
             elif state == "closed":
                 self.isConnected= False
                 print_status("Peer Connection State", "⚫ closed")
+                asyncio.create_task(self._auto_reconnect())
             elif state == "failed":
                 print_status("Peer Connection State", "🔴 failed")
+                asyncio.create_task(self._auto_reconnect())
         
         @self.pc.on("signalingstatechange")
         async def on_signaling_state_change():
@@ -157,16 +196,20 @@ class UnitreeWebRTCConnection:
         async def on_track(track):
             logging.info("Track recieved: %s", track.kind)
 
-            if track.kind == "video":
-                #await for the first frame, #ToDo make the code more nicer
-                frame = await track.recv()
-                await self.video.track_handler(track)
-                
-            if track.kind == "audio":
-                frame = await track.recv()
-                while True:
+            from aiortc.mediastreams import MediaStreamError
+            try:
+                if track.kind == "video":
+                    #await for the first frame, #ToDo make the code more nicer
                     frame = await track.recv()
-                    await self.audio.frame_handler(frame)
+                    await self.video.track_handler(track)
+                    
+                if track.kind == "audio":
+                    frame = await track.recv()
+                    while True:
+                        frame = await track.recv()
+                        await self.audio.frame_handler(frame)
+            except MediaStreamError:
+                logging.info(f"Track {track.kind} ended or encountered a MediaStreamError. This usually happens when connection resets.")
 
         logging.info("Creating offer...")
         offer = await self.pc.createOffer()

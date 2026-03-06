@@ -1,5 +1,5 @@
 [project]
-name = "unitree_webrtc_connect_leshy"
+name = "unitree_webrtc_connect_battlebang"
 version = "2.0.7"
 description = "Connect to the Unitree Go2 and G1 with WebRTC"
 readme = "README.md"
