@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.FATAL)
 async def main():
     try:
         # Choose a connection method (uncomment the correct one)
-        conn = UnitreeWebRTCConnection(WebRTCConnectionMethod.LocalSTA, ip="192.168.8.181")
+        conn = UnitreeWebRTCConnection(WebRTCConnectionMethod.LocalSTA, ip="10.2.81.19")
         # conn = UnitreeWebRTCConnection(WebRTCConnectionMethod.LocalSTA, serialNumber="B42D2000XXXXXXXX")
         # conn = UnitreeWebRTCConnection(WebRTCConnectionMethod.Remote, serialNumber="B42D2000XXXXXXXX", username="email@gmail.com", password="pass")
         # conn = UnitreeWebRTCConnection(WebRTCConnectionMethod.LocalAP)
@@ -45,11 +45,16 @@ async def main():
             )
             await asyncio.sleep(5)  # Wait while it stands up
 
-        # Perform a "Hello" movement
-        print("Performing 'Hello' movement...")
+        print("Performing 'StandUp' movement...")
         await conn.datachannel.pub_sub.publish_request_new(
             RTC_TOPIC["SPORT_MOD"], 
-            {"api_id": SPORT_CMD["Hello"]}
+            {"api_id": SPORT_CMD["StandUp"]}
+        )
+        # Perform a "Hello" movement
+        print("Performing 'recovery' movement...")
+        await conn.datachannel.pub_sub.publish_request_new(
+            RTC_TOPIC["SPORT_MOD"], 
+            {"api_id": SPORT_CMD["RecoveryStand"]}
         )
 
         await asyncio.sleep(1)
@@ -78,40 +83,35 @@ async def main():
 
         await asyncio.sleep(3)
 
-        ####### AI MODE ########
-
-        # Switch to AI mode
-        print("Switching motion mode to 'AI'...")
+        print("Performing 'Hello' movement...")
         await conn.datachannel.pub_sub.publish_request_new(
-            RTC_TOPIC["MOTION_SWITCHER"], 
+            RTC_TOPIC["SPORT_MOD"], 
+            {"api_id": SPORT_CMD["Hello"]}
+        )
+
+
+
+        print("Switching to FrontFlip Mode...")
+        await conn.datachannel.pub_sub.publish_request_new(
+            RTC_TOPIC["SPORT_MOD"], 
             {
-                "api_id": 1002,
-                "parameter": {"name": "ai"}
+                "api_id": SPORT_CMD["FrontFlip"],
+                "parameter": {"data": True}
             }
         )
-        await asyncio.sleep(10)
 
+       
         # Switch to Handstand Mode
         print("Switching to Handstand Mode...")
         await conn.datachannel.pub_sub.publish_request_new(
             RTC_TOPIC["SPORT_MOD"], 
             {
-                "api_id": SPORT_CMD["StandOut"],
+                "api_id": SPORT_CMD["StandDown"],
                 "parameter": {"data": True}
             }
         )
 
-        await asyncio.sleep(5)
-
-        # Switch back to StandUp Mode
-        print("Switching back to StandUp Mode...")
-        await conn.datachannel.pub_sub.publish_request_new(
-            RTC_TOPIC["SPORT_MOD"], 
-            {
-                "api_id": SPORT_CMD["StandOut"],
-                "parameter": {"data": False}
-            }
-        )
+       
 
         # await asyncio.sleep(5)
         # Perform a backflip

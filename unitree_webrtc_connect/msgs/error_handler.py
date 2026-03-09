@@ -1,13 +1,15 @@
-from ..constants import app_error_messages
 import time
+
+from ..constants import app_error_messages
+
 
 def integer_to_hex_string(error_code):
     """
     Converts an integer error code to a hexadecimal string.
-    
+
     Args:
         error_code (int): The error code as an integer.
-        
+
     Returns:
         str: The error code as a hexadecimal string, without the '0x' prefix, in uppercase.
     """
@@ -18,6 +20,7 @@ def integer_to_hex_string(error_code):
     hex_string = hex(error_code)[2:].upper()
 
     return hex_string
+
 
 def get_error_code_text(error_source, error_code):
     """
@@ -33,13 +36,14 @@ def get_error_code_text(error_source, error_code):
     """
     # Generate the key for looking up the error message
     key = f"app_error_code_{error_source}_{error_code}"
-    
+
     # Check if the key exists in the error_code_dict
     if key in app_error_messages:
         return app_error_messages[key]
     else:
         # Fallback: return the combination of error_source and error_code
         return f"{error_source}-{error_code}"
+
 
 def get_error_source_text(error_source):
     """
@@ -55,13 +59,14 @@ def get_error_source_text(error_source):
     """
     # Generate the key for looking up the error message
     key = f"app_error_source_{error_source}"
-    
+
     # Check if the key exists in the error_code_dict
     if key in app_error_messages:
         return app_error_messages[key]
     else:
         # Fallback: return the combination of error_source and error_code
         return f"{error_source}"
+
 
 def handle_error(message):
     """
