@@ -1,5 +1,7 @@
 import asyncio
 import json
+import logging
+import random
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -9,13 +11,36 @@ from .future_resolver import FutureResolver
 
 
 class WebRTCDataChannelPubSub:
-    def __init__(self, channel, n_workers: int = 4):
+    def __init__(self, channel, n_workers: int = 2, lidar_hz=15.0, video_fps=15.0):
         self.channel = channel
 
         self.future_resolver = FutureResolver()
         self.subscriptions = {}  # Dictionary to hold callbacks keyed by topic
-        # Use a thread pool to run subscription callbacks so they don't block the event loop
+        # Thread pool for binary message decoding (lidar, video) and subscription callbacks.
+        # These are fire-and-forget: they never block the WebRTC event loop.
+        # On Jetson Orin Nano (8-core): 8 workers handles concurrent lidar/video/odom streams.
         self.callback_pool = ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="webrtc_sub_cb")
+
+        # Pre-decoding throttle logic
+        self._last_process_time = {}
+        self.throttle_limits = {
+            "rt/utlidar/voxel_map_compressed": 1.0 / lidar_hz if lidar_hz > 0 else 0,
+            "vid": 1.0 / video_fps if video_fps > 0 else 0,
+        }
+
+    def should_process(self, topic_or_type: str) -> bool:
+        """Determines if a frame should be processed based on throttle limits."""
+        if not topic_or_type or topic_or_type not in self.throttle_limits:
+            return True
+
+        now = time.time()
+        last_time = self._last_process_time.get(topic_or_type, 0)
+        limit = self.throttle_limits[topic_or_type]
+
+        if now - last_time >= limit:
+            self._last_process_time[topic_or_type] = now
+            return True
+        return False
 
     def run_resolve(self, message):
         self.future_resolver.run_resolve_for_topic(message)
