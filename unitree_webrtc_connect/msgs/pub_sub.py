@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from ..constants import DATA_CHANNEL_TYPE
 from ..util import get_nested_field
@@ -10,11 +11,36 @@ from .future_resolver import FutureResolver
 
 
 class WebRTCDataChannelPubSub:
-    def __init__(self, channel):
+    def __init__(self, channel, n_workers: int = 2, lidar_hz=15.0, video_fps=15.0):
         self.channel = channel
 
         self.future_resolver = FutureResolver()
         self.subscriptions = {}  # Dictionary to hold callbacks keyed by topic
+        # Thread pool for binary message decoding (lidar, video) and subscription callbacks.
+        # These are fire-and-forget: they never block the WebRTC event loop.
+        # On Jetson Orin Nano (8-core): 8 workers handles concurrent lidar/video/odom streams.
+        self.callback_pool = ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="webrtc_sub_cb")
+
+        # Pre-decoding throttle logic
+        self._last_process_time = {}
+        self.throttle_limits = {
+            "rt/utlidar/voxel_map_compressed": 1.0 / lidar_hz if lidar_hz > 0 else 0,
+            "vid": 1.0 / video_fps if video_fps > 0 else 0,
+        }
+
+    def should_process(self, topic_or_type: str) -> bool:
+        """Determines if a frame should be processed based on throttle limits."""
+        if not topic_or_type or topic_or_type not in self.throttle_limits:
+            return True
+
+        now = time.time()
+        last_time = self._last_process_time.get(topic_or_type, 0)
+        limit = self.throttle_limits[topic_or_type]
+
+        if now - last_time >= limit:
+            self._last_process_time[topic_or_type] = now
+            return True
+        return False
 
     def run_resolve(self, message):
         self.future_resolver.run_resolve_for_topic(message)
@@ -22,9 +48,10 @@ class WebRTCDataChannelPubSub:
         # Extract the topic from the message
         topic = message.get("topic")
         if topic in self.subscriptions:
-            # Call the registered callback with the message
+            # Execute the callback in a separate thread to prevent blocking
+            # the WebRTC event loop with heavy tasks like pointcloud decoding.
             callback = self.subscriptions[topic]
-            callback(message)
+            self.callback_pool.submit(callback, message)
 
     async def publish(self, topic, data=None, msg_type=None, timeout=10.0):
         channel = self.channel
