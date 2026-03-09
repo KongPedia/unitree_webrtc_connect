@@ -1,30 +1,31 @@
 import asyncio
 import json
 import time
-import random
-import logging
+from concurrent.futures import ThreadPoolExecutor
+
 from ..constants import DATA_CHANNEL_TYPE
 from .future_resolver import FutureResolver
 from ..util import get_nested_field
 
 class WebRTCDataChannelPubSub:
-
-    def __init__(self, channel):
+    def __init__(self, channel, n_workers: int = 4):
         self.channel = channel
 
         self.future_resolver = FutureResolver()
         self.subscriptions = {}  # Dictionary to hold callbacks keyed by topic
-    
+        # Use a thread pool to run subscription callbacks so they don't block the event loop
+        self.callback_pool = ThreadPoolExecutor(max_workers=n_workers, thread_name_prefix="webrtc_sub_cb")
+
     def run_resolve(self, message):
         self.future_resolver.run_resolve_for_topic(message)
 
          # Extract the topic from the message
         topic = message.get("topic")
         if topic in self.subscriptions:
-            # Call the registered callback with the message
+            # Execute the callback in a separate thread to prevent blocking
+            # the WebRTC event loop with heavy tasks like pointcloud decoding.
             callback = self.subscriptions[topic]
-            callback(message)
-        
+            self.callback_pool.submit(callback, message)
 
     async def publish(self, topic, data=None, msg_type=None):
         channel = self.channel
