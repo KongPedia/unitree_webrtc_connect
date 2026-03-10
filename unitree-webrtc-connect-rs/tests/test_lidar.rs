@@ -1,5 +1,5 @@
 use lz4_flex::block::compress;
-use unitree_webrtc_core_rs::lidar::native::decode_native_core;
+use unitree_webrtc_connect_rs::lidar::native::decode_native_core;
 
 #[test]
 fn test_native_decoder_core() {

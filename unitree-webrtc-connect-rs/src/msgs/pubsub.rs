@@ -3,7 +3,25 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-pub type TopicCallback = Box<dyn Fn(&Value) + Send + Sync + 'static>;
+#[derive(Debug, Clone)]
+pub enum LidarDecodedData {
+    Native(Vec<[f64; 3]>),
+    Wasm {
+        point_count: usize,
+        face_count: usize,
+        positions: Vec<f32>,
+        uvs: Vec<f32>,
+        indices: Vec<u32>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum CallbackPayload {
+    Json(Value),
+    Lidar(Value, LidarDecodedData),
+}
+
+pub type TopicCallback = Box<dyn Fn(CallbackPayload) + Send + Sync + 'static>;
 
 pub struct WebRTCDataChannelPubSub {
     future_resolver: FutureResolver,
@@ -51,12 +69,16 @@ impl WebRTCDataChannelPubSub {
             .save_resolve(message_type, topic, identifier);
     }
 
-    pub fn run_resolve(&mut self, message: &mut Value) -> Result<Option<String>, String> {
+    pub fn run_resolve(&mut self, mut payload: CallbackPayload) -> Result<Option<String>, String> {
+        let message = match &mut payload {
+            CallbackPayload::Json(v) => v,
+            CallbackPayload::Lidar(v, _) => v,
+        };
         let resolved = self.future_resolver.run_resolve_for_topic(message)?;
 
         if let Some(topic) = message.get("topic").and_then(Value::as_str) {
             if let Some(callback) = self.subscriptions.get(topic) {
-                callback(message);
+                callback(payload);
             }
         }
 

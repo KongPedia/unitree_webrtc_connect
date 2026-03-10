@@ -3,7 +3,7 @@ use aes_gcm::{
     Aes128Gcm, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
-use unitree_webrtc_core_rs::signaling::{calc_local_path_ending, decrypt_con_notify_data};
+use unitree_webrtc_connect_rs::signaling::{calc_local_path_ending, decrypt_con_notify_data};
 
 #[test]
 fn test_calc_local_path_ending_extracts_expected_digits() {

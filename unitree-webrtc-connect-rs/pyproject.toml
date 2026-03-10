@@ -3,7 +3,7 @@ requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "unitree_webrtc_core_rs"
+name = "unitree_webrtc_connect_rs"
 version = "0.1.0"
 description = "Native Rust core for unitree_webrtc_connect"
 authors = [{ name = "jongmoon-konglabs" }]

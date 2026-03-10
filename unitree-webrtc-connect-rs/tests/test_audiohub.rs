@@ -1,4 +1,4 @@
-use unitree_webrtc_core_rs::audiohub::WebRTCAudioHub;
+use unitree_webrtc_connect_rs::audiohub::WebRTCAudioHub;
 
 #[test]
 fn test_audiohub_basic_requests() {

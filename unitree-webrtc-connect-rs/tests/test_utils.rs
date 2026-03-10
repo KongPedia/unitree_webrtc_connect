@@ -1,4 +1,4 @@
-use unitree_webrtc_core_rs::utils::*;
+use unitree_webrtc_connect_rs::utils::*;
 
 #[test]
 fn test_generate_md5() {

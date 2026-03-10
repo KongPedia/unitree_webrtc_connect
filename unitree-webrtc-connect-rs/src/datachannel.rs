@@ -60,10 +60,28 @@ impl WebRTCDataChannel {
         self.reconnect_requested = true;
     }
 
+    pub fn save_resolve(&mut self, message_type: &str, topic: &str, identifier: Option<&str>) {
+        self.pub_sub.save_resolve(message_type, topic, identifier);
+    }
+
+    pub fn take_resolved(&mut self, key: &str) -> Option<Value> {
+        self.pub_sub.take_resolved(key)
+    }
+
+    pub fn subscribe(&mut self, topic: &str, callback: crate::msgs::pubsub::TopicCallback) {
+        self.pub_sub.subscribe(topic, callback);
+    }
+
+    pub fn unsubscribe(&mut self, topic: &str) {
+        self.pub_sub.unsubscribe(topic);
+    }
+
     pub fn handle_text_message(&mut self, message: &str, now: Instant) -> Result<Value, String> {
-        let mut parsed: Value =
+        let parsed: Value =
             serde_json::from_str(message).map_err(|e| format!("JSON decode error: {e}"))?;
-        let _ = self.pub_sub.run_resolve(&mut parsed)?;
+        let _ = self
+            .pub_sub
+            .run_resolve(crate::msgs::pubsub::CallbackPayload::Json(parsed.clone()))?;
         self.handle_response(&parsed, now)?;
         Ok(parsed)
     }
@@ -86,6 +104,55 @@ impl WebRTCDataChannel {
             return Ok(None);
         }
 
+        if parsed.is_lidar {
+            let decoded_data =
+                if let Some(meta) = decoded_json.get("data").and_then(|d| d.as_object()) {
+                    let origin_arr = meta.get("origin").and_then(|o| o.as_array()).unwrap();
+                    let origin = [
+                        origin_arr[0].as_f64().unwrap_or(0.0),
+                        origin_arr[1].as_f64().unwrap_or(0.0),
+                        origin_arr[2].as_f64().unwrap_or(0.0),
+                    ];
+                    let resolution = meta
+                        .get("resolution")
+                        .and_then(|r| r.as_f64())
+                        .unwrap_or(0.05);
+
+                    if self.decoder_type == "native" {
+                        let points = crate::lidar::native::decode_native_core(
+                            &parsed.binary_data,
+                            1000000,
+                            origin,
+                            resolution,
+                        )
+                        .map_err(|e| format!("Native decode error: {}", e))?;
+                        crate::msgs::pubsub::LidarDecodedData::Native(points)
+                    } else {
+                        let (point_count, face_count, positions, uvs, indices) =
+                            crate::lidar::wasm::decode_wasm_core(
+                                &parsed.binary_data,
+                                origin,
+                                resolution,
+                            )
+                            .map_err(|e| format!("Wasm decode error: {}", e))?;
+                        crate::msgs::pubsub::LidarDecodedData::Wasm {
+                            point_count,
+                            face_count,
+                            positions,
+                            uvs,
+                            indices,
+                        }
+                    }
+                } else {
+                    return Err("Missing metadata for LiDAR decoding".to_string());
+                };
+
+            let payload =
+                crate::msgs::pubsub::CallbackPayload::Lidar(decoded_json.clone(), decoded_data);
+            let _ = self.pub_sub.run_resolve(payload)?;
+            return Ok(Some(decoded_json));
+        }
+
         let bytes_as_json = Value::Array(
             parsed
                 .binary_data
@@ -99,7 +166,11 @@ impl WebRTCDataChannel {
         }
 
         if decoded_json.get("type").is_some() {
-            let _ = self.pub_sub.run_resolve(&mut decoded_json)?;
+            let _ = self
+                .pub_sub
+                .run_resolve(crate::msgs::pubsub::CallbackPayload::Json(
+                    decoded_json.clone(),
+                ))?;
         }
         Ok(Some(decoded_json))
     }

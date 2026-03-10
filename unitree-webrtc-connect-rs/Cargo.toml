@@ -1,10 +1,10 @@
 [package]
-name = "unitree_webrtc_core_rs"
+name = "unitree_webrtc_connect_rs"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "unitree_webrtc_core_rs"
+name = "unitree_webrtc_connect_rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

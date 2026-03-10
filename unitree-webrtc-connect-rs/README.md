@@ -1,4 +1,4 @@
-# unitree_webrtc_core_rs
+# unitree_webrtc_connect_rs
 
 Python-to-Rust native binding for unitree WebRTC connection. This replaces the performance-heavy `aiortc` Python implementation with Zero-Copy Rust.
 

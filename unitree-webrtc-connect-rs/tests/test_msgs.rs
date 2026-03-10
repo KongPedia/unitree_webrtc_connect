@@ -1,17 +1,17 @@
 use serde_json::json;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use unitree_webrtc_core_rs::constants::WebRTCConnectionMethod;
-use unitree_webrtc_core_rs::msgs::error_handler::{
+use unitree_webrtc_connect_rs::constants::WebRTCConnectionMethod;
+use unitree_webrtc_connect_rs::msgs::error_handler::{
     get_error_code_text, get_error_source_text, handle_error, integer_to_hex_string,
 };
-use unitree_webrtc_core_rs::msgs::future_resolver::FutureResolver;
-use unitree_webrtc_core_rs::msgs::heartbeat::WebRTCDataChannelHeartBeat;
-use unitree_webrtc_core_rs::msgs::pubsub::WebRTCDataChannelPubSub;
-use unitree_webrtc_core_rs::msgs::rtc_inner_req::{
+use unitree_webrtc_connect_rs::msgs::future_resolver::FutureResolver;
+use unitree_webrtc_connect_rs::msgs::heartbeat::WebRTCDataChannelHeartBeat;
+use unitree_webrtc_connect_rs::msgs::pubsub::WebRTCDataChannelPubSub;
+use unitree_webrtc_connect_rs::msgs::rtc_inner_req::{
     WebRTCDataChannelFileUploader, WebRTCDataChannelNetworkStatus,
 };
-use unitree_webrtc_core_rs::msgs::validation::WebRTCDataChannelValidation;
+use unitree_webrtc_connect_rs::msgs::validation::WebRTCDataChannelValidation;
 
 #[test]
 fn test_future_resolver_generates_key() {
@@ -91,13 +91,15 @@ fn test_pubsub_throttle_and_subscription_callback() {
     );
 
     pubsub.save_resolve("res", "topic/cb", Some("id-cb"));
-    let mut message = json!({
+    let message = json!({
         "type": "res",
         "topic": "topic/cb",
         "data": {"uuid": "id-cb", "data": "ok"}
     });
 
-    let resolved = pubsub.run_resolve(&mut message).unwrap();
+    let resolved = pubsub
+        .run_resolve(unitree_webrtc_connect_rs::msgs::pubsub::CallbackPayload::Json(message))
+        .unwrap();
     assert_eq!(resolved, Some("id-cb".to_string()));
     assert!(*called.lock().unwrap());
 }

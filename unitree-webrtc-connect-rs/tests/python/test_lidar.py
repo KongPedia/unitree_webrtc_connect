@@ -1,5 +1,5 @@
 import unittest
-from unitree_webrtc_core_rs import UnifiedLidarDecoder
+from unitree_webrtc_connect_rs import UnifiedLidarDecoder
 import numpy as np
 
 class TestLidarDecoder(unittest.TestCase):

@@ -1,5 +1,5 @@
 use std::time::Instant;
-use unitree_webrtc_core_rs::datachannel::WebRTCDataChannel;
+use unitree_webrtc_connect_rs::datachannel::WebRTCDataChannel;
 
 #[test]
 fn test_set_decoder_validation() {

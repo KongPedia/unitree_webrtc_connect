@@ -1,5 +1,5 @@
 use serde_json::json;
-use unitree_webrtc_core_rs::message::parse_array_buffer;
+use unitree_webrtc_connect_rs::message::parse_array_buffer;
 
 #[test]
 fn test_parse_normal_message() {

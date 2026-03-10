@@ -4,7 +4,7 @@ import sys
 import warnings
 
 try:
-    from unitree_webrtc_connect.webrtc_driver_rs import UnitreeWebRTCConnection
+    from unitree_webrtc_connect import UnitreeWebRTCConnection
 except ImportError:
     warnings.warn(
         "webrtc_driver_rs import failed. Falling back to python webrtc_driver.",

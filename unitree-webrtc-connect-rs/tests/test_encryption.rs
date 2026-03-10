@@ -1,4 +1,4 @@
-use unitree_webrtc_core_rs::encryption::*;
+use unitree_webrtc_connect_rs::encryption::*;
 
 #[test]
 fn test_generate_aes_key_has_expected_length() {

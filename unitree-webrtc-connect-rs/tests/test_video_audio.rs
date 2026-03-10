@@ -1,7 +1,7 @@
 use serde_json::json;
 use std::sync::{Arc, Mutex};
-use unitree_webrtc_core_rs::audio::WebRTCAudioChannel;
-use unitree_webrtc_core_rs::video::WebRTCVideoChannel;
+use unitree_webrtc_connect_rs::audio::WebRTCAudioChannel;
+use unitree_webrtc_connect_rs::video::WebRTCVideoChannel;
 
 #[test]
 fn test_video_channel_callbacks_and_switch() {

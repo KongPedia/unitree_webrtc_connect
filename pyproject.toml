@@ -9,7 +9,6 @@ authors = [
 ]
 
 dependencies = [
-    "unitree-webrtc-core-rs",
     "aiortc>=1.9.0",
     "pycryptodome",
     "requests",
@@ -22,6 +21,11 @@ dependencies = [
     "pyaudio",
     "pydub",
     "opencv-python"
+]
+
+[project.optional-dependencies]
+rs-core = [
+    "unitree-webrtc-connect-rs"
 ]
 
 [build-system]
@@ -49,4 +53,4 @@ exclude = [
 include-package-data = true
 
 [tool.uv.sources]
-unitree-webrtc-core-rs = { path = "rust-core" }
+unitree-webrtc-connect-rs = { path = "unitree-webrtc-connect-rs" }
