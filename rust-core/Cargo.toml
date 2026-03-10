@@ -1,0 +1,31 @@
+[package]
+name = "unitree_webrtc_core_rs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "unitree_webrtc_core_rs"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
+numpy = "0.22"
+ndarray = "0.16"
+wasmtime = "29.0"
+datachannel = { version = "0.16.0", features = ["vendored"] }
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+lz4_flex = "0.11"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+md-5 = "0.10"
+base64 = "0.22"
+rsa = "0.9"
+aes = "0.8"
+aes-gcm = "0.10"
+uuid = { version = "1.1", features = ["v4"] }
+rand = "0.8"
+hex = "0.4"
+
+[build-dependencies]
+pyo3-build-config = "0.22"
