@@ -39,3 +39,9 @@ elif Version(aiortc.__version__) >= Version("1.11.0"):
         "sha-256": hashes.SHA256(),  # type: ignore
     }
     aiortc.rtcdtlstransport.X509_DIGEST_ALGORITHMS = X509_DIGEST_ALGORITHMS
+
+
+from .webrtc_driver import UnitreeWebRTCConnection
+
+
+__all__ = ["UnitreeWebRTCConnection"]

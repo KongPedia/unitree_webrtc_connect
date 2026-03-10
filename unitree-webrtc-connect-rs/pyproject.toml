@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "unitree_webrtc_connect_rs"
+version = "0.1.0"
+description = "Native Rust core for unitree_webrtc_connect"
+authors = [{ name = "jongmoon-konglabs" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+]
+
+[tool.maturin]
+features = ["pyo3/extension-module"]
