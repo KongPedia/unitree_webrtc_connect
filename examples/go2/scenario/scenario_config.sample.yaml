@@ -1,0 +1,29 @@
+robots:
+  go2_air_01:
+    ip: 10.2.80.87
+  go2_air_02:
+    ip: 10.2.80.92
+  go2_air_04:
+    ip: 10.2.81.19
+  go2_air_05:
+    ip: 10.2.80.114
+groups:
+  all:
+    - go2_air_01
+    - go2_air_02
+    - go2_air_04
+    - go2_air_05
+  teamA:
+    - go2_air_01
+    - go2_air_05
+  teamB:
+    - go2_air_04
+    - go2_air_05
+startup_target: all
+startup_sequence:
+  - liedown
+steps:
+  red_duration_seconds: 3600
+  liedown_settle_seconds: 3.0
+  standup_settle_seconds: 2.0
+  recovery_delay_seconds: 1.0
